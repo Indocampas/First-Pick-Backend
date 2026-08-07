@@ -1,0 +1,2338 @@
+===== F:\HR AGRO\backend\pom.xml =====
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+        <relativePath/>
+    </parent>
+    
+    <groupId>com.hragro</groupId>
+    <artifactId>backend</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>HR Agro Backend</name>
+    <description>HR Agro Farm Backend API</description>
+    
+    <properties>
+        <java.version>17</java.version>
+        <jjwt.version>0.11.5</jjwt.version>
+    </properties>
+    
+    <dependencies>
+        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- JWT Dependencies -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- NO LOMBOK -->
+        
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\BackendApplication.java =====
+package com.hragro.backend;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
+
+@SpringBootApplication
+@EnableMongoAuditing
+public class BackendApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(BackendApplication.class, args);
+        System.out.println("🚀 HR Agro Backend Started Successfully!");
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\config\DataSeeder.java =====
+package com.hragro.backend.config;
+
+import com.hragro.backend.model.*;
+import com.hragro.backend.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+
+@Component
+public class DataSeeder implements CommandLineRunner {
+
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private ProductRepository productRepository;
+    
+    @Autowired
+    private FruitRepository fruitRepository;
+    
+    // Remove unused repositories to fix warnings
+    // @Autowired
+    // private GalleryRepository galleryRepository;
+    
+    // @Autowired
+    // private FranchiseLocationRepository franchiseLocationRepository;
+    
+    // @Autowired
+    // private FranchiseContentRepository franchiseContentRepository;
+    
+    @Autowired
+    private AboutContentRepository aboutContentRepository;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Override
+    public void run(String... args) throws Exception {
+        System.out.println("🚀 Starting HR Agro Data Seeder...");
+        System.out.println("📊 Database: hragro_farm");
+        
+        // ========================================
+        // 1. Create Default Admin User
+        // ========================================
+        if (!userRepository.existsByUsername("admin")) {
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole("ADMIN");
+            admin.setActive(true);
+            userRepository.save(admin);
+            System.out.println("✅ Default admin created: admin/admin123");
+        } else {
+            System.out.println("ℹ️ Admin already exists");
+        }
+
+        // ========================================
+        // 2. Seed Products (Vegetables)
+        // ========================================
+        if (productRepository.count() == 0) {
+            Product[] products = {
+                createProduct("Fresh Tomatoes", "Farm-picked, juicy & pesticide-free", 40.0, "kg", "tomato.jpg", "vegetable"),
+                createProduct("Carrots", "Crisp, sweet & rich in vitamin A", 35.0, "kg", "carrot.jpg", "vegetable"),
+                createProduct("Potatoes", "Everyday kitchen essential, farm fresh", 30.0, "kg", "potato.jpg", "vegetable"),
+                createProduct("Capsicum", "Crunchy, colorful & vitamin-rich", 50.0, "kg", "capsicum.jpg", "vegetable"),
+                createProduct("Onions", "Everyday essential, sorted & graded", 28.0, "kg", "onion.jpg", "vegetable"),
+                createProduct("Green Chillies", "Fresh, spicy & harvested daily", 25.0, "kg", "chilli.jpg", "vegetable"),
+            };
+            productRepository.saveAll(Arrays.asList(products));
+            System.out.println("✅ Seeded " + products.length + " products");
+        } else {
+            System.out.println("ℹ️ Products already exist");
+        }
+
+        // ========================================
+        // 3. Seed Fruits
+        // ========================================
+        if (fruitRepository.count() == 0) {
+            Fruit[] fruits = {
+                createFruit("Mango", "Sweet, juicy & the king of fruits", 90.0, "kg", "mango.jpg"),
+                createFruit("Banana", "Energy-packed, farm-fresh & naturally sweet", 40.0, "dozen", "banana.jpg"),
+                createFruit("Papaya", "Soft, ripe & rich in vitamin C", 35.0, "kg", "papaya.jpg"),
+                createFruit("Watermelon", "Refreshing, juicy & perfect for summer", 25.0, "kg", "watermelon.jpg"),
+                createFruit("Orange", "Tangy, citrusy & vitamin C rich", 60.0, "kg", "orange.jpg"),
+                createFruit("Grapes", "Sweet, seedless & bunch-fresh", 70.0, "kg", "grapes.jpg"),
+            };
+            fruitRepository.saveAll(Arrays.asList(fruits));
+            System.out.println("✅ Seeded " + fruits.length + " fruits");
+        } else {
+            System.out.println("ℹ️ Fruits already exist");
+        }
+
+        // ========================================
+        // 4. Seed About Content
+        // ========================================
+        if (aboutContentRepository.count() == 0) {
+            AboutContent about = new AboutContent();
+            about.setVision("To become India's most trusted farm-to-doorstep vegetable brand, making fresh, hygienic, and affordable produce accessible to every neighborhood through a nationwide network of mobile vegetable stores.");
+            about.setMission("Our mission is to connect farmers directly with customers — cutting out unnecessary middlemen — while empowering entrepreneurs across the country to build sustainable businesses under the HR Agro brand.");
+            aboutContentRepository.save(about);
+            System.out.println("✅ Seeded about content");
+        } else {
+            System.out.println("ℹ️ About content already exists");
+        }
+
+        System.out.println("🎉 HR Agro Data Seeding Complete!");
+    }
+
+    private Product createProduct(String name, String desc, Double price, String unit, String image, String category) {
+        Product product = new Product();
+        product.setName(name);
+        product.setDesc(desc);
+        product.setPrice(price);
+        product.setUnit(unit);
+        product.setImage("/api/uploads/files/" + image);
+        product.setCategory(category);
+        return product;
+    }
+
+    private Fruit createFruit(String name, String desc, Double price, String unit, String image) {
+        Fruit fruit = new Fruit();
+        fruit.setName(name);
+        fruit.setDesc(desc);
+        fruit.setPrice(price);
+        fruit.setUnit(unit);
+        fruit.setImage("/api/uploads/files/" + image);
+        return fruit;
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\config\SecurityConfig.java =====
+package com.hragro.backend.config;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.hragro.backend.security.JwtRequestFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Autowired
+    private JwtRequestFilter jwtRequestFilter;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://localhost:5174",
+            "http://192.168.1.150:5173",     // ← YOUR FRONTEND IP
+            "http://192.168.1.180:5173",     // ← BACKEND IP (if accessing from same machine)
+            "http://192.168.1.150:3000",
+            "http://192.168.1.180:3000"
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(authz -> authz
+                // Public endpoints
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/products/**").permitAll()
+                .requestMatchers("/api/fruits/**").permitAll()
+                .requestMatchers("/api/gallery/**").permitAll()
+                .requestMatchers("/api/franchise/**").permitAll()
+                .requestMatchers("/api/about/**").permitAll()
+                .requestMatchers("/api/uploads/**").permitAll()
+                .requestMatchers("/api/health/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                // Admin only
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\config\WebSocketConfig.java =====
+package com.hragro.backend.config;
+
+// Temporarily comment out WebSocket config until dependencies resolve
+/*
+import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        config.enableSimpleBroker("/topic");
+        config.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws")
+                .setAllowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .withSockJS();
+    }
+}
+*/
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\AboutContentController.java =====
+package com.hragro.backend.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.AboutContent;
+import com.hragro.backend.service.AboutContentService;
+
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/api/about")
+@CrossOrigin(origins = "*")
+public class AboutContentController {
+    
+    @Autowired
+    private AboutContentService aboutContentService;
+    
+    @GetMapping
+    public ResponseEntity<AboutContent> getAboutContent() {
+        return ResponseEntity.ok(aboutContentService.getFirstAboutContent());
+    }
+    
+    @GetMapping("/all")
+    public ResponseEntity<List<AboutContent>> getAllAboutContent() {
+        return ResponseEntity.ok(aboutContentService.getAllAboutContent());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getAboutContentById(@PathVariable String id) {
+        return aboutContentService.getAboutContentById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<AboutContent> createAboutContent(@Valid @RequestBody AboutContent content) {
+        return ResponseEntity.ok(aboutContentService.createAboutContent(content));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<AboutContent> updateAboutContent(@PathVariable String id, @Valid @RequestBody AboutContent content) {
+        return ResponseEntity.ok(aboutContentService.updateAboutContent(id, content));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessage> deleteAboutContent(@PathVariable String id) {
+        aboutContentService.deleteAboutContent(id);
+        return ResponseEntity.ok(new ResponseMessage("About content deleted successfully", true));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\AuthController.java =====
+package com.hragro.backend.controller;
+
+import com.hragro.backend.dto.AuthRequest;
+import com.hragro.backend.dto.AuthResponse;
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.User;
+import com.hragro.backend.security.JwtUtil;
+import com.hragro.backend.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "*")
+public class AuthController {
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest authRequest) {
+        try {
+            authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    authRequest.getUsername(),
+                    authRequest.getPassword()
+                )
+            );
+
+            String token = jwtUtil.generateToken(authRequest.getUsername(), "ADMIN");
+            return ResponseEntity.ok(new AuthResponse(token, authRequest.getUsername(), "Login successful"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ResponseMessage("Invalid credentials", false));
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody AuthRequest authRequest) {
+        try {
+            User user = userService.createAdminUser(authRequest.getUsername(), authRequest.getPassword());
+            return ResponseEntity.ok(new ResponseMessage("User created successfully", true));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ResponseMessage(e.getMessage(), false));
+        }
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                String username = jwtUtil.extractUsername(token);
+                if (username != null && !jwtUtil.isTokenExpired(token)) {
+                    return ResponseEntity.ok(new ResponseMessage("Token valid", true));
+                }
+            } catch (Exception e) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseMessage("Invalid token", false));
+            }
+        }
+        return ResponseEntity.badRequest()
+                .body(new ResponseMessage("Invalid token", false));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\FileUploadController.java =====
+package com.hragro.backend.controller;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.hragro.backend.dto.ResponseMessage;
+
+@RestController
+@RequestMapping("/api/uploads")
+@CrossOrigin(origins = "*")
+public class FileUploadController {
+
+    @Value("${app.file.upload-dir:uploads/}")
+    private String uploadDir;
+
+    @PostMapping("/image")
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseMessage("Please select a file", false));
+            }
+
+            // Validate file type
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseMessage("Only image files are allowed", false));
+            }
+
+            // Validate file size (max 5MB)
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest()
+                        .body(new ResponseMessage("File size exceeds 5MB limit", false));
+            }
+
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String fileName = UUID.randomUUID().toString() + extension;
+
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Save file
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Return file URL
+            String fileUrl = "/api/uploads/files/" + fileName;
+            
+            return ResponseEntity.ok(new FileUploadResponse(fileName, fileUrl, file.getSize()));
+            
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError()
+                    .body(new ResponseMessage("Failed to upload file: " + e.getMessage(), false));
+        }
+    }
+
+    @PostMapping("/images")
+    public ResponseEntity<?> uploadMultipleImages(@RequestParam("files") List<MultipartFile> files) {
+        try {
+            List<FileUploadResponse> uploadedFiles = new ArrayList<>();
+            
+            for (MultipartFile file : files) {
+                if (file.isEmpty()) continue;
+                
+                // Validate file type
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    continue;
+                }
+                
+                String originalFilename = file.getOriginalFilename();
+                String extension = "";
+                if (originalFilename != null && originalFilename.contains(".")) {
+                    extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                }
+                String fileName = UUID.randomUUID().toString() + extension;
+                
+                Path uploadPath = Paths.get(uploadDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                
+                String fileUrl = "/api/uploads/files/" + fileName;
+                uploadedFiles.add(new FileUploadResponse(fileName, fileUrl, file.getSize()));
+            }
+            
+            return ResponseEntity.ok(uploadedFiles);
+            
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError()
+                    .body(new ResponseMessage("Failed to upload files: " + e.getMessage(), false));
+        }
+    }
+
+    @GetMapping("/files/{fileName:.+}")
+    public ResponseEntity<Resource> serveFile(@PathVariable String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(fileName);
+            Resource resource = new UrlResource(filePath.toUri());
+            
+            if (resource.exists() && resource.isReadable()) {
+                String contentType = Files.probeContentType(filePath);
+                if (contentType == null) {
+                    contentType = "application/octet-stream";
+                }
+                
+                return ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (MalformedURLException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @DeleteMapping("/files/{fileName:.+}")
+    public ResponseEntity<?> deleteFile(@PathVariable String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(fileName);
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                return ResponseEntity.ok(new ResponseMessage("File deleted successfully", true));
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError()
+                    .body(new ResponseMessage("Failed to delete file: " + e.getMessage(), false));
+        }
+    }
+}
+
+// DTO for file upload response
+class FileUploadResponse {
+    private String fileName;
+    private String fileUrl;
+    private long size;
+
+    public FileUploadResponse(String fileName, String fileUrl, long size) {
+        this.fileName = fileName;
+        this.fileUrl = fileUrl;
+        this.size = size;
+    }
+
+    public String getFileName() { return fileName; }
+    public String getFileUrl() { return fileUrl; }
+    public long getSize() { return size; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public void setSize(long size) { this.size = size; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\FranchiseContentController.java =====
+package com.hragro.backend.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.FranchiseContent;
+import com.hragro.backend.service.FranchiseContentService;
+
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/api/franchise/content")
+@CrossOrigin(origins = "*")
+public class FranchiseContentController {
+    
+    @Autowired
+    private FranchiseContentService franchiseContentService;
+    
+    @GetMapping
+    public ResponseEntity<List<FranchiseContent>> getAllContent() {
+        return ResponseEntity.ok(franchiseContentService.getAllContent());
+    }
+    
+    @GetMapping("/category/{category}")
+    public ResponseEntity<?> getContentByCategory(@PathVariable String category) {
+        return franchiseContentService.getContentByCategory(category)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getContentById(@PathVariable String id) {
+        return franchiseContentService.getContentById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<FranchiseContent> createContent(@Valid @RequestBody FranchiseContent content) {
+        return ResponseEntity.ok(franchiseContentService.createContent(content));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<FranchiseContent> updateContent(@PathVariable String id, @Valid @RequestBody FranchiseContent content) {
+        return ResponseEntity.ok(franchiseContentService.updateContent(id, content));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessage> deleteContent(@PathVariable String id) {
+        franchiseContentService.deleteContent(id);
+        return ResponseEntity.ok(new ResponseMessage("Content deleted successfully", true));
+    }
+    
+    @PostMapping("/{id}/trucks")
+    public ResponseEntity<FranchiseContent> addTruck(@PathVariable String id, @RequestBody FranchiseContent.Truck truck) {
+        return ResponseEntity.ok(franchiseContentService.addTruck(id, truck));
+    }
+    
+    @DeleteMapping("/{contentId}/trucks/{truckId}")
+    public ResponseEntity<ResponseMessage> removeTruck(@PathVariable String contentId, @PathVariable String truckId) {
+        franchiseContentService.removeTruck(contentId, truckId);
+        return ResponseEntity.ok(new ResponseMessage("Truck removed successfully", true));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\FranchiseLocationController.java =====
+package com.hragro.backend.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.FranchiseLocation;
+import com.hragro.backend.service.FranchiseLocationService;
+
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/api/franchise/locations")
+@CrossOrigin(origins = "*")
+public class FranchiseLocationController {
+    
+    @Autowired
+    private FranchiseLocationService franchiseLocationService;
+    
+    @GetMapping
+    public ResponseEntity<List<FranchiseLocation>> getAllLocations() {
+        return ResponseEntity.ok(franchiseLocationService.getAllLocations());
+    }
+    
+    @GetMapping("/state/{state}")
+    public ResponseEntity<List<FranchiseLocation>> getLocationsByState(@PathVariable String state) {
+        return ResponseEntity.ok(franchiseLocationService.getLocationsByState(state));
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getLocationById(@PathVariable String id) {
+        return franchiseLocationService.getLocationById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<FranchiseLocation> createLocation(@Valid @RequestBody FranchiseLocation location) {
+        return ResponseEntity.ok(franchiseLocationService.createLocation(location));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<FranchiseLocation> updateLocation(@PathVariable String id, @Valid @RequestBody FranchiseLocation location) {
+        return ResponseEntity.ok(franchiseLocationService.updateLocation(id, location));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessage> deleteLocation(@PathVariable String id) {
+        franchiseLocationService.deleteLocation(id);
+        return ResponseEntity.ok(new ResponseMessage("Location deleted successfully", true));
+    }
+    
+    @PostMapping("/{id}/places")
+    public ResponseEntity<FranchiseLocation> addPlace(@PathVariable String id, @RequestBody FranchiseLocation.Place place) {
+        return ResponseEntity.ok(franchiseLocationService.addPlace(id, place));
+    }
+    
+    @DeleteMapping("/{locationId}/places/{placeId}")
+    public ResponseEntity<ResponseMessage> removePlace(@PathVariable String locationId, @PathVariable String placeId) {
+        franchiseLocationService.removePlace(locationId, placeId);
+        return ResponseEntity.ok(new ResponseMessage("Place removed successfully", true));
+    }
+    
+    @PatchMapping("/{locationId}/places/{placeId}/toggle")
+    public ResponseEntity<FranchiseLocation> togglePlaceAvailability(@PathVariable String locationId, @PathVariable String placeId) {
+        return ResponseEntity.ok(franchiseLocationService.togglePlaceAvailability(locationId, placeId));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\FruitController.java =====
+package com.hragro.backend.controller;
+
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.Fruit;
+import com.hragro.backend.service.FruitService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/fruits")
+@CrossOrigin(origins = "*")
+public class FruitController {
+    
+    @Autowired
+    private FruitService fruitService;
+    
+    @GetMapping
+    public ResponseEntity<List<Fruit>> getAllFruits() {
+        return ResponseEntity.ok(fruitService.getAllFruits());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getFruitById(@PathVariable String id) {
+        return fruitService.getFruitById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<Fruit> createFruit(@Valid @RequestBody Fruit fruit) {
+        return ResponseEntity.ok(fruitService.createFruit(fruit));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<Fruit> updateFruit(@PathVariable String id, @Valid @RequestBody Fruit fruit) {
+        return ResponseEntity.ok(fruitService.updateFruit(id, fruit));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessage> deleteFruit(@PathVariable String id) {
+        fruitService.deleteFruit(id);
+        return ResponseEntity.ok(new ResponseMessage("Fruit deleted successfully", true));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\GalleryController.java =====
+package com.hragro.backend.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.GalleryItem;
+import com.hragro.backend.service.GalleryService;
+
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/api/gallery")
+@CrossOrigin(origins = "*")
+public class GalleryController {
+    
+    @Autowired
+    private GalleryService galleryService;
+    
+    @GetMapping
+    public ResponseEntity<List<GalleryItem>> getAllItems() {
+        return ResponseEntity.ok(galleryService.getAllItems());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getItemById(@PathVariable String id) {
+        return galleryService.getItemById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<GalleryItem> createItem(@Valid @RequestBody GalleryItem item) {
+        return ResponseEntity.ok(galleryService.createItem(item));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<GalleryItem> updateItem(@PathVariable String id, @Valid @RequestBody GalleryItem item) {
+        return ResponseEntity.ok(galleryService.updateItem(id, item));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessage> deleteItem(@PathVariable String id) {
+        galleryService.deleteItem(id);
+        return ResponseEntity.ok(new ResponseMessage("Gallery item deleted successfully", true));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\ProductController.java =====
+package com.hragro.backend.controller;
+
+import com.hragro.backend.dto.PageRequestDto;
+import com.hragro.backend.dto.PageResponseDto;
+import com.hragro.backend.dto.ResponseMessage;
+import com.hragro.backend.model.Product;
+import com.hragro.backend.service.ProductService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/products")
+@CrossOrigin(origins = "*")
+public class ProductController {
+
+    @Autowired
+    private ProductService productService;
+
+    @GetMapping
+    public ResponseEntity<List<Product>> getAllProducts() {
+        return ResponseEntity.ok(productService.getAllProducts());
+    }
+
+    @PostMapping("/paginated")
+    public ResponseEntity<PageResponseDto<Product>> getProductsPaginated(
+            @RequestBody PageRequestDto request) {
+        return ResponseEntity.ok(productService.getProductsWithPagination(request));
+    }
+
+    @GetMapping("/category/{category}")
+    public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable String category) {
+        return ResponseEntity.ok(productService.getProductsByCategory(category));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getProductById(@PathVariable String id) {
+        return productService.getProductById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product) {
+        return ResponseEntity.ok(productService.createProduct(product));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable String id, @Valid @RequestBody Product product) {
+        return ResponseEntity.ok(productService.updateProduct(id, product));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessage> deleteProduct(@PathVariable String id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(new ResponseMessage("Product deleted successfully", true));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\controller\WebSocketController.java =====
+package com.hragro.backend.controller;
+
+// Temporarily comment out WebSocket controller
+/*
+import com.hragro.backend.model.Product;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.stereotype.Controller;
+
+@Controller
+public class WebSocketController {
+
+    @MessageMapping("/product/update")
+    @SendTo("/topic/products")
+    public Product productUpdate(Product product) {
+        return product;
+    }
+
+    @MessageMapping("/product/delete")
+    @SendTo("/topic/products")
+    public String productDelete(String productId) {
+        return productId;
+    }
+
+    @MessageMapping("/franchise/update")
+    @SendTo("/topic/franchise")
+    public Object franchiseUpdate(Object update) {
+        return update;
+    }
+}
+*/
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\dto\AuthRequest.java =====
+package com.hragro.backend.dto;
+
+import jakarta.validation.constraints.NotBlank;
+
+public class AuthRequest {
+    @NotBlank(message = "Username is required")
+    private String username;
+    
+    @NotBlank(message = "Password is required")
+    private String password;
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\dto\AuthResponse.java =====
+package com.hragro.backend.dto;
+
+public class AuthResponse {
+    private String token;
+    private String username;
+    private String message;
+
+    public AuthResponse() {}
+
+    public AuthResponse(String token, String username, String message) {
+        this.token = token;
+        this.username = username;
+        this.message = message;
+    }
+
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
+    
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\dto\PageRequestDto.java =====
+package com.hragro.backend.dto;
+
+public class PageRequestDto {
+    private int page = 0;
+    private int size = 10;
+    private String sortBy = "createdAt";
+    private String sortDirection = "desc";
+    private String search = "";
+    private String category = "";
+
+    public int getPage() { return page; }
+    public void setPage(int page) { this.page = page; }
+    
+    public int getSize() { return size; }
+    public void setSize(int size) { this.size = size; }
+    
+    public String getSortBy() { return sortBy; }
+    public void setSortBy(String sortBy) { this.sortBy = sortBy; }
+    
+    public String getSortDirection() { return sortDirection; }
+    public void setSortDirection(String sortDirection) { this.sortDirection = sortDirection; }
+    
+    public String getSearch() { return search; }
+    public void setSearch(String search) { this.search = search; }
+    
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\dto\PageResponseDto.java =====
+package com.hragro.backend.dto;
+
+import java.util.List;
+
+public class PageResponseDto<T> {
+    private List<T> content;
+    private int pageNumber;
+    private int pageSize;
+    private long totalElements;
+    private int totalPages;
+    private boolean first;
+    private boolean last;
+
+    public PageResponseDto() {}
+
+    public PageResponseDto(List<T> content, int pageNumber, int pageSize, 
+                           long totalElements, int totalPages, boolean first, boolean last) {
+        this.content = content;
+        this.pageNumber = pageNumber;
+        this.pageSize = pageSize;
+        this.totalElements = totalElements;
+        this.totalPages = totalPages;
+        this.first = first;
+        this.last = last;
+    }
+
+    public List<T> getContent() { return content; }
+    public void setContent(List<T> content) { this.content = content; }
+    
+    public int getPageNumber() { return pageNumber; }
+    public void setPageNumber(int pageNumber) { this.pageNumber = pageNumber; }
+    
+    public int getPageSize() { return pageSize; }
+    public void setPageSize(int pageSize) { this.pageSize = pageSize; }
+    
+    public long getTotalElements() { return totalElements; }
+    public void setTotalElements(long totalElements) { this.totalElements = totalElements; }
+    
+    public int getTotalPages() { return totalPages; }
+    public void setTotalPages(int totalPages) { this.totalPages = totalPages; }
+    
+    public boolean isFirst() { return first; }
+    public void setFirst(boolean first) { this.first = first; }
+    
+    public boolean isLast() { return last; }
+    public void setLast(boolean last) { this.last = last; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\dto\ProductRequest.java =====
+package com.hragro.backend.dto;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public class ProductRequest {
+    @NotBlank(message = "Product name is required")
+    private String name;
+    
+    @NotBlank(message = "Description is required")
+    private String desc;
+    
+    @NotNull(message = "Price is required")
+    @Min(value = 0, message = "Price must be greater than or equal to 0")
+    private Double price;
+    
+    @NotBlank(message = "Unit is required")
+    private String unit;
+    
+    @NotBlank(message = "Image URL is required")
+    private String image;
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    
+    public String getDesc() { return desc; }
+    public void setDesc(String desc) { this.desc = desc; }
+    
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+    
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
+    
+    public String getImage() { return image; }
+    public void setImage(String image) { this.image = image; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\dto\ResponseMessage.java =====
+package com.hragro.backend.dto;
+
+public class ResponseMessage {
+    private String message;
+    private boolean success;
+
+    // Default constructor
+    public ResponseMessage() {}
+
+    // Constructor with parameters
+    public ResponseMessage(String message, boolean success) {
+        this.message = message;
+        this.success = success;
+    }
+
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
+
+    public boolean isSuccess() { return success; }
+    public void setSuccess(boolean success) { this.success = success; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\exception\GlobalExceptionHandler.java =====
+package com.hragro.backend.exception;
+
+import com.hragro.backend.dto.ResponseMessage;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.badRequest().body(errors);
+    }
+    
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ResponseMessage> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ResponseMessage(ex.getMessage(), false));
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ResponseMessage> handleGeneralException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ResponseMessage("An unexpected error occurred: " + ex.getMessage(), false));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\AboutContent.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "about_content")
+public class AboutContent extends BaseEntity {
+    private String vision;
+    private String mission;
+
+    public String getVision() { return vision; }
+    public void setVision(String vision) { this.vision = vision; }
+    
+    public String getMission() { return mission; }
+    public void setMission(String mission) { this.mission = mission; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\BaseEntity.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import java.time.LocalDateTime;
+
+public abstract class BaseEntity {
+    @Id
+    private String id;
+    
+    @CreatedDate
+    private LocalDateTime createdAt;
+    
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\FranchiseContent.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.ArrayList;
+import java.util.List;
+
+@Document(collection = "franchise_content")
+public class FranchiseContent extends BaseEntity {
+    private String category;
+    private String intro;
+    private List<String> listItems = new ArrayList<>();
+    private String trailingText;
+    private List<Truck> trucks = new ArrayList<>();
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    
+    public String getIntro() { return intro; }
+    public void setIntro(String intro) { this.intro = intro; }
+    
+    public List<String> getListItems() { return listItems; }
+    public void setListItems(List<String> listItems) { this.listItems = listItems; }
+    
+    public String getTrailingText() { return trailingText; }
+    public void setTrailingText(String trailingText) { this.trailingText = trailingText; }
+    
+    public List<Truck> getTrucks() { return trucks; }
+    public void setTrucks(List<Truck> trucks) { this.trucks = trucks; }
+
+    public static class Truck {
+        private String id;
+        private String name;
+        private String image;
+        private String description;
+        private List<String> features = new ArrayList<>();
+        private String price;
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        
+        public String getImage() { return image; }
+        public void setImage(String image) { this.image = image; }
+        
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        
+        public List<String> getFeatures() { return features; }
+        public void setFeatures(List<String> features) { this.features = features; }
+        
+        public String getPrice() { return price; }
+        public void setPrice(String price) { this.price = price; }
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\FranchiseLocation.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.ArrayList;
+import java.util.List;
+
+@Document(collection = "franchise_locations")
+public class FranchiseLocation extends BaseEntity {
+    private String city;
+    private String state;
+    private List<Place> places = new ArrayList<>();
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
+    
+    public List<Place> getPlaces() { return places; }
+    public void setPlaces(List<Place> places) { this.places = places; }
+
+    public static class Place {
+        private String id;
+        private String name;
+        private boolean available;
+        private Double lat;
+        private Double lng;
+        private String mapsUrl;
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
+        
+        public Double getLat() { return lat; }
+        public void setLat(Double lat) { this.lat = lat; }
+        
+        public Double getLng() { return lng; }
+        public void setLng(Double lng) { this.lng = lng; }
+        
+        public String getMapsUrl() { return mapsUrl; }
+        public void setMapsUrl(String mapsUrl) { this.mapsUrl = mapsUrl; }
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\Fruit.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "fruits")
+public class Fruit extends BaseEntity {
+    @Indexed
+    private String name;
+    private String desc;
+    private Double price;
+    private String unit;
+    private String image;
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    
+    public String getDesc() { return desc; }
+    public void setDesc(String desc) { this.desc = desc; }
+    
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+    
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
+    
+    public String getImage() { return image; }
+    public void setImage(String image) { this.image = image; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\GalleryItem.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "gallery_items")
+public class GalleryItem extends BaseEntity {
+    private String title;
+    private String type;
+    private String src;
+    private String thumbnail;
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+    
+    public String getSrc() { return src; }
+    public void setSrc(String src) { this.src = src; }
+    
+    public String getThumbnail() { return thumbnail; }
+    public void setThumbnail(String thumbnail) { this.thumbnail = thumbnail; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\Product.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "products")
+public class Product extends BaseEntity {
+    @Indexed
+    private String name;
+    private String desc;
+    private Double price;
+    private String unit;
+    private String image;
+    private String category;
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    
+    public String getDesc() { return desc; }
+    public void setDesc(String desc) { this.desc = desc; }
+    
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+    
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
+    
+    public String getImage() { return image; }
+    public void setImage(String image) { this.image = image; }
+    
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\model\User.java =====
+package com.hragro.backend.model;
+
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "users")
+public class User extends BaseEntity {
+    @Indexed(unique = true)
+    private String username;
+    private String password;
+    private String role;
+    private boolean active = true;
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+    
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\AboutContentRepository.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.AboutContent;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface AboutContentRepository extends MongoRepository<AboutContent, String> {
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\FranchiseContentRepository.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.FranchiseContent;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface FranchiseContentRepository extends MongoRepository<FranchiseContent, String> {
+    Optional<FranchiseContent> findByCategory(String category);
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\FranchiseLocationRepository.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.FranchiseLocation;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface FranchiseLocationRepository extends MongoRepository<FranchiseLocation, String> {
+    List<FranchiseLocation> findByState(String state);
+    List<FranchiseLocation> findByCityContainingIgnoreCase(String city);
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\FruitRepository.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.Fruit;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface FruitRepository extends MongoRepository<Fruit, String> {
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\GalleryRepository.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.GalleryItem;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface GalleryRepository extends MongoRepository<GalleryItem, String> {
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\ProductRepository.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.Product;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface ProductRepository extends MongoRepository<Product, String> {
+    List<Product> findByCategory(String category);
+    
+    // Remove extends ProductRepositoryCustom from here
+    // We'll use ProductRepositoryCustom separately
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\ProductRepositoryCustom.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface ProductRepositoryCustom {
+    Page<Product> searchProducts(String search, String category, Pageable pageable);
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\ProductRepositoryImpl.java =====
+package com.hragro.backend.repository;
+
+import com.hragro.backend.model.Product;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Repository
+@Primary  // <-- Add this to make it the primary bean
+public class ProductRepositoryImpl implements ProductRepositoryCustom {
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+    @Override
+    public Page<Product> searchProducts(String search, String category, Pageable pageable) {
+        Query query = new Query();
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        if (search != null && !search.isEmpty()) {
+            Criteria searchCriteria = new Criteria().orOperator(
+                Criteria.where("name").regex(search, "i"),
+                Criteria.where("desc").regex(search, "i")
+            );
+            criteriaList.add(searchCriteria);
+        }
+
+        if (category != null && !category.isEmpty()) {
+            criteriaList.add(Criteria.where("category").is(category));
+        }
+
+        if (!criteriaList.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
+        }
+
+        long total = mongoTemplate.count(query, Product.class);
+        query.with(pageable);
+        List<Product> products = mongoTemplate.find(query, Product.class);
+
+        return new PageImpl<>(products, pageable, total);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\repository\UserRepository.java =====
+package com.hragro.backend.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import com.hragro.backend.model.User;
+
+@Repository
+public interface UserRepository extends MongoRepository<User, String> {
+    Optional<User> findByUsername(String username);
+    boolean existsByUsername(String username);
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\security\JwtRequestFilter.java =====
+package com.hragro.backend.security;
+
+import com.hragro.backend.service.CustomUserDetailsService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+@Component
+public class JwtRequestFilter extends OncePerRequestFilter {
+    
+    @Autowired
+    private JwtUtil jwtUtil;
+    
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+    
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+        
+        final String authorizationHeader = request.getHeader("Authorization");
+        
+        String username = null;
+        String jwt = null;
+        
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            jwt = authorizationHeader.substring(7);
+            username = jwtUtil.extractUsername(jwt);
+        }
+        
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            
+            if (jwtUtil.validateToken(jwt, username)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+        chain.doFilter(request, response);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\security\JwtUtil.java =====
+package com.hragro.backend.security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+
+@Component
+public class JwtUtil {
+
+    @Value("${app.jwt.secret}")
+    private String secret;
+
+    @Value("${app.jwt.expiration-ms}")
+    private long expirationMs;
+
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public Boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    public String generateToken(String username, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        return createToken(claims, username);
+    }
+
+    private String createToken(Map<String, Object> claims, String subject) {
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public Boolean validateToken(String token, String username) {
+        final String extractedUsername = extractUsername(token);
+        return (extractedUsername.equals(username) && !isTokenExpired(token));
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\AboutContentService.java =====
+package com.hragro.backend.service;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.hragro.backend.model.AboutContent;
+import com.hragro.backend.repository.AboutContentRepository;
+
+@Service
+public class AboutContentService {
+    
+    @Autowired
+    private AboutContentRepository aboutContentRepository;
+    
+    public List<AboutContent> getAllAboutContent() {
+        return aboutContentRepository.findAll();
+    }
+    
+    public Optional<AboutContent> getAboutContentById(String id) {
+        return aboutContentRepository.findById(id);
+    }
+    
+    public AboutContent getFirstAboutContent() {
+        List<AboutContent> all = aboutContentRepository.findAll();
+        if (all.isEmpty()) {
+            // Create default if none exists
+            AboutContent defaultContent = new AboutContent();
+            defaultContent.setVision("To become India's most trusted farm-to-doorstep vegetable brand...");
+            defaultContent.setMission("Our mission is to connect farmers directly with customers...");
+            return aboutContentRepository.save(defaultContent);
+        }
+        return all.get(0);
+    }
+    
+    public AboutContent createAboutContent(AboutContent content) {
+        return aboutContentRepository.save(content);
+    }
+    
+    public AboutContent updateAboutContent(String id, AboutContent content) {
+        content.setId(id);
+        return aboutContentRepository.save(content);
+    }
+    
+    public void deleteAboutContent(String id) {
+        aboutContentRepository.deleteById(id);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\CustomUserDetailsService.java =====
+package com.hragro.backend.service;
+
+import com.hragro.backend.model.User;
+import com.hragro.backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+
+@Service
+public class CustomUserDetailsService implements UserDetailsService {
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
+        );
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\FranchiseContentService.java =====
+package com.hragro.backend.service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.hragro.backend.model.FranchiseContent;
+import com.hragro.backend.repository.FranchiseContentRepository;
+
+@Service
+public class FranchiseContentService {
+    
+    @Autowired
+    private FranchiseContentRepository franchiseContentRepository;
+    
+    public List<FranchiseContent> getAllContent() {
+        return franchiseContentRepository.findAll();
+    }
+    
+    public Optional<FranchiseContent> getContentById(String id) {
+        return franchiseContentRepository.findById(id);
+    }
+    
+    public Optional<FranchiseContent> getContentByCategory(String category) {
+        return franchiseContentRepository.findByCategory(category);
+    }
+    
+    public FranchiseContent createContent(FranchiseContent content) {
+        // Ensure trucks have IDs
+        content.getTrucks().forEach(truck -> {
+            if (truck.getId() == null || truck.getId().isEmpty()) {
+                truck.setId(UUID.randomUUID().toString());
+            }
+        });
+        return franchiseContentRepository.save(content);
+    }
+    
+    public FranchiseContent updateContent(String id, FranchiseContent content) {
+        content.setId(id);
+        // Preserve existing truck IDs
+        Optional<FranchiseContent> existing = franchiseContentRepository.findById(id);
+        if (existing.isPresent()) {
+            for (int i = 0; i < content.getTrucks().size(); i++) {
+                FranchiseContent.Truck truck = content.getTrucks().get(i);
+                if (truck.getId() == null || truck.getId().isEmpty()) {
+                    truck.setId(UUID.randomUUID().toString());
+                }
+            }
+        }
+        return franchiseContentRepository.save(content);
+    }
+    
+    public void deleteContent(String id) {
+        franchiseContentRepository.deleteById(id);
+    }
+    
+    // Add a truck to existing content
+    public FranchiseContent addTruck(String contentId, FranchiseContent.Truck truck) {
+        Optional<FranchiseContent> opt = franchiseContentRepository.findById(contentId);
+        if (opt.isEmpty()) {
+            throw new RuntimeException("Content not found");
+        }
+        FranchiseContent content = opt.get();
+        truck.setId(UUID.randomUUID().toString());
+        content.getTrucks().add(truck);
+        return franchiseContentRepository.save(content);
+    }
+    
+    // Remove a truck
+    public FranchiseContent removeTruck(String contentId, String truckId) {
+        Optional<FranchiseContent> opt = franchiseContentRepository.findById(contentId);
+        if (opt.isEmpty()) {
+            throw new RuntimeException("Content not found");
+        }
+        FranchiseContent content = opt.get();
+        content.getTrucks().removeIf(t -> t.getId().equals(truckId));
+        return franchiseContentRepository.save(content);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\FranchiseLocationService.java =====
+package com.hragro.backend.service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.hragro.backend.model.FranchiseLocation;
+import com.hragro.backend.repository.FranchiseLocationRepository;
+
+@Service
+public class FranchiseLocationService {
+    
+    @Autowired
+    private FranchiseLocationRepository franchiseLocationRepository;
+    
+    public List<FranchiseLocation> getAllLocations() {
+        return franchiseLocationRepository.findAll();
+    }
+    
+    public Optional<FranchiseLocation> getLocationById(String id) {
+        return franchiseLocationRepository.findById(id);
+    }
+    
+    public List<FranchiseLocation> getLocationsByState(String state) {
+        return franchiseLocationRepository.findByState(state);
+    }
+    
+    public FranchiseLocation createLocation(FranchiseLocation location) {
+        // Ensure each place has an ID
+        location.getPlaces().forEach(place -> {
+            if (place.getId() == null || place.getId().isEmpty()) {
+                place.setId(UUID.randomUUID().toString());
+            }
+        });
+        return franchiseLocationRepository.save(location);
+    }
+    
+    public FranchiseLocation updateLocation(String id, FranchiseLocation location) {
+        location.setId(id);
+        // Preserve existing place IDs
+        Optional<FranchiseLocation> existing = franchiseLocationRepository.findById(id);
+        if (existing.isPresent()) {
+            for (int i = 0; i < location.getPlaces().size(); i++) {
+                FranchiseLocation.Place place = location.getPlaces().get(i);
+                if (place.getId() == null || place.getId().isEmpty()) {
+                    place.setId(UUID.randomUUID().toString());
+                }
+            }
+        }
+        return franchiseLocationRepository.save(location);
+    }
+    
+    public void deleteLocation(String id) {
+        franchiseLocationRepository.deleteById(id);
+    }
+    
+    // Add a place to an existing location
+    public FranchiseLocation addPlace(String locationId, FranchiseLocation.Place place) {
+        Optional<FranchiseLocation> opt = franchiseLocationRepository.findById(locationId);
+        if (opt.isEmpty()) {
+            throw new RuntimeException("Location not found");
+        }
+        FranchiseLocation location = opt.get();
+        place.setId(UUID.randomUUID().toString());
+        location.getPlaces().add(place);
+        return franchiseLocationRepository.save(location);
+    }
+    
+    // Remove a place from a location
+    public FranchiseLocation removePlace(String locationId, String placeId) {
+        Optional<FranchiseLocation> opt = franchiseLocationRepository.findById(locationId);
+        if (opt.isEmpty()) {
+            throw new RuntimeException("Location not found");
+        }
+        FranchiseLocation location = opt.get();
+        location.getPlaces().removeIf(p -> p.getId().equals(placeId));
+        return franchiseLocationRepository.save(location);
+    }
+    
+    // Toggle place availability
+    public FranchiseLocation togglePlaceAvailability(String locationId, String placeId) {
+        Optional<FranchiseLocation> opt = franchiseLocationRepository.findById(locationId);
+        if (opt.isEmpty()) {
+            throw new RuntimeException("Location not found");
+        }
+        FranchiseLocation location = opt.get();
+        location.getPlaces().forEach(place -> {
+            if (place.getId().equals(placeId)) {
+                place.setAvailable(!place.isAvailable());
+            }
+        });
+        return franchiseLocationRepository.save(location);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\FruitService.java =====
+package com.hragro.backend.service;
+
+import com.hragro.backend.model.Fruit;
+import com.hragro.backend.repository.FruitRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class FruitService {
+    
+    @Autowired
+    private FruitRepository fruitRepository;
+    
+    public List<Fruit> getAllFruits() {
+        return fruitRepository.findAll();
+    }
+    
+    public Optional<Fruit> getFruitById(String id) {
+        return fruitRepository.findById(id);
+    }
+    
+    public Fruit createFruit(Fruit fruit) {
+        return fruitRepository.save(fruit);
+    }
+    
+    public Fruit updateFruit(String id, Fruit fruit) {
+        fruit.setId(id);
+        return fruitRepository.save(fruit);
+    }
+    
+    public void deleteFruit(String id) {
+        fruitRepository.deleteById(id);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\GalleryService.java =====
+package com.hragro.backend.service;
+
+import com.hragro.backend.model.GalleryItem;
+import com.hragro.backend.repository.GalleryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class GalleryService {
+    
+    @Autowired
+    private GalleryRepository galleryRepository;
+    
+    public List<GalleryItem> getAllItems() {
+        return galleryRepository.findAll();
+    }
+    
+    public Optional<GalleryItem> getItemById(String id) {
+        return galleryRepository.findById(id);
+    }
+    
+    public GalleryItem createItem(GalleryItem item) {
+        return galleryRepository.save(item);
+    }
+    
+    public GalleryItem updateItem(String id, GalleryItem item) {
+        item.setId(id);
+        return galleryRepository.save(item);
+    }
+    
+    public void deleteItem(String id) {
+        galleryRepository.deleteById(id);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\ProductService.java =====
+package com.hragro.backend.service;
+
+import com.hragro.backend.dto.PageRequestDto;
+import com.hragro.backend.dto.PageResponseDto;
+import com.hragro.backend.model.Product;
+import com.hragro.backend.repository.ProductRepository;
+import com.hragro.backend.repository.ProductRepositoryCustom;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ProductService {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductRepositoryCustom productRepositoryCustom;
+
+    public List<Product> getAllProducts() {
+        return productRepository.findAll();
+    }
+
+    public PageResponseDto<Product> getProductsWithPagination(PageRequestDto request) {
+        Sort.Direction direction = request.getSortDirection().equalsIgnoreCase("asc") 
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(
+                request.getPage(), 
+                request.getSize(), 
+                Sort.by(direction, request.getSortBy())
+        );
+
+        Page<Product> page = productRepositoryCustom.searchProducts(
+                request.getSearch(), 
+                request.getCategory(), 
+                pageable
+        );
+
+        return new PageResponseDto<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isFirst(),
+                page.isLast()
+        );
+    }
+
+    public List<Product> getProductsByCategory(String category) {
+        return productRepository.findByCategory(category);
+    }
+
+    public Optional<Product> getProductById(String id) {
+        return productRepository.findById(id);
+    }
+
+    public Product createProduct(Product product) {
+        return productRepository.save(product);
+    }
+
+    public Product updateProduct(String id, Product product) {
+        product.setId(id);
+        return productRepository.save(product);
+    }
+
+    public void deleteProduct(String id) {
+        productRepository.deleteById(id);
+    }
+}
+
+===== F:\HR AGRO\backend\src\main\java\com\hragro\backend\service\UserService.java =====
+package com.hragro.backend.service;
+
+import com.hragro.backend.model.User;
+import com.hragro.backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserService {
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    
+    public User createAdminUser(String username, String password) {
+        if (userRepository.existsByUsername(username)) {
+            throw new RuntimeException("User already exists");
+        }
+        
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRole("ADMIN");
+        user.setActive(true);
+        
+        return userRepository.save(user);
+    }
+}
+
+===== F:\HR AGRO\backend\src\test\java\com\hragro\backend\BackendApplicationTests.java =====
+package com.hragro.backend;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class BackendApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
+
