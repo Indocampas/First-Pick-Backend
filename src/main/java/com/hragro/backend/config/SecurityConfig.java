@@ -42,13 +42,21 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
+            // Local dev
             "http://localhost:5173",
             "http://localhost:3000",
             "http://localhost:5174",
-            "http://192.168.1.150:5173",     // ← YOUR FRONTEND IP
-            "http://192.168.1.180:5173",     // ← BACKEND IP (if accessing from same machine)
+            "http://192.168.1.150:5173",
+            "http://192.168.1.180:5173",
             "http://192.168.1.150:3000",
-            "http://192.168.1.180:3000"
+            "http://192.168.1.180:3000",
+
+            // Production - Vercel deployment
+            "https://first-pick-dvwm.vercel.app",
+
+            // Production - custom domain
+            "https://firstpickfarm.com",
+            "https://www.firstpickfarm.com"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
