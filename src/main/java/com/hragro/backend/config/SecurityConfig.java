@@ -56,7 +56,9 @@ public class SecurityConfig {
 
             // Production - custom domain
             "https://firstpickfarm.com",
-            "https://www.firstpickfarm.com"
+            "https://www.firstpickfarm.com",
+            "https://firstpickfarms.com",
+            "https://www.firstpickfarms.com"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
