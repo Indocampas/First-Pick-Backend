@@ -58,7 +58,9 @@ public class SecurityConfig {
             "https://firstpickfarm.com",
             "https://www.firstpickfarm.com",
             "https://firstpickfarms.com",
-            "https://www.firstpickfarms.com"
+            "https://www.firstpickfarms.com",
+            "https://firstpickfarms.in",
+            "https://www.firstpickfarms.in"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
